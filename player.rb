@@ -21,6 +21,10 @@ class Player
     element.at_css(".playertableData").text != "--"
   end
 
+  def non_zero?
+    points != 0
+  end
+
   private
 
   attr_reader :element

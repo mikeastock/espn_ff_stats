@@ -19,13 +19,36 @@ class Team
   end
 
   def woulda
-  end
-
-  def grouped_players
-    @grouped_players ||= players.group_by(&:position)
+    score = 0
+    score += lowest_players_scores(position: "QB", number: 1)
+    score += lowest_players_scores(position: "RB", number: 2)
+    score += lowest_players_scores(position: "WR", number: 3)
+    score += lowest_players_scores(position: "TE", number: 1)
+    score += lowest_players_scores(position: "D/ST", number: 1)
+    score += lowest_players_scores(position: "K", number: 1)
   end
 
   private
+
+  def grouped_players
+    @grouped_players ||= non_zero_players.group_by(&:position)
+  end
+
+  def non_zero_players
+    players.select { |player| player.non_zero? }
+  end
+
+  def lowest_players_scores(args)
+    players = lowest_players(args)
+    players.map(&:points).inject(0) { |sum, points| sum + points }
+  end
+
+  def lowest_players(args)
+    position = args.fetch(:position)
+    number = args.fetch(:number)
+
+    grouped_players[position].sort_by(&:points).first(number)
+  end
 
   def bench_players
     players.select { |player| player.bench? }
