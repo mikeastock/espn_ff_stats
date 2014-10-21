@@ -10,14 +10,22 @@ class Player
   end
 
   def bench?
-    position == "Bench"
+    element.at_css(".playerSlot").text == "Bench"
   end
 
   def position
-    element.at_css(".playerSlot").text
+    position_text.match(/(QB|RB|WR|TE|D\/ST|K)/).captures.first
+  end
+
+  def present?
+    element.at_css(".playertableData").text != "--"
   end
 
   private
 
   attr_reader :element
+
+  def position_text
+    element.at_css(".playertablePlayerName").text.split(" ").last 
+  end
 end

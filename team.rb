@@ -19,7 +19,10 @@ class Team
   end
 
   def woulda
-    players_by_points
+  end
+
+  def grouped_players
+    @grouped_players ||= players.group_by(&:position)
   end
 
   private
@@ -33,6 +36,10 @@ class Team
   end
 
   def setup_players
+    all_players.select { |player| player.present? }
+  end
+
+  def all_players
     player_elements.map { |element| Player.new(element) }
   end
 
