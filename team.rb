@@ -23,6 +23,10 @@ class Team
     shoulda_team.score.round(2)
   end
 
+  def coach_score
+    (shoulda - actual_score / shoulda - woulda).round(2)
+  end
+
   def name
     page.at_css(".team-name").text
   end
@@ -30,11 +34,15 @@ class Team
   private
 
   def total_score
-    players.map(&:points).inject(0) { |sum, points| sum + points }
+    players.map(&:points).inject(0, :+)
   end
 
   def bench_score
-    bench_players.map(&:points).inject(0) { |sum, points| sum + points }
+    bench_players.map(&:points).inject(0, :+)
+  end
+
+  def actual_score
+    active_players.map(&:points).inject(0, :+)
   end
 
   def shoulda_team
@@ -121,6 +129,10 @@ class Team
 
   def bench_players
     players.select { |player| player.bench? }
+  end
+
+  def active_players
+    players.reject { |player| player.bench? }
   end
 
   def setup_page(url)

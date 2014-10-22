@@ -9,6 +9,7 @@ rows = Array.new
 rows << ["Woulda", team.woulda]
 rows << ["Coulda", team.coulda]
 rows << ["Shoulda", team.shoulda]
+rows << ["Coach Score", "#{team.coach_score} %"]
 
 table = Terminal::Table.new(title: team.name, rows: rows)
 
