@@ -5,12 +5,10 @@ require_relative "player"
 
 class Team
   attr_reader :page, :players
-  attr_accessor :available_players
 
   def initialize(url)
     @page = setup_page(url)
     @players = setup_players
-    @available_players = grouped_players
   end
 
   def total_points
@@ -27,12 +25,13 @@ class Team
 
   def setup_woulda_team_team
     team = ActiveTeam.new
-    team.qb = lowest_players(position: :qb, number: 1)
-    team.rb = lowest_players(position: :rb, number: 2)
-    team.wr = lowest_players(position: :wr, number: 3)
-    team.te = lowest_players(position: :te, number: 1)
+    team.qb   = lowest_players(position: :qb, number: 1)
+    team.rb   = lowest_players(position: :rb, number: 2)
+    team.wr   = lowest_players(position: :wr, number: 3)
+    team.te   = lowest_players(position: :te, number: 1)
     team.d_st = lowest_players(position: :d_st, number: 1)
-    team.k = lowest_players(position: :k, number: 1)
+    team.k    = lowest_players(position: :k, number: 1)
+    team.flex = lowest_flex_player(number: 1, team: team)
     team
   end
 
@@ -45,30 +44,20 @@ class Team
   end
 
   # private
-  
-  def calculate_woulda
-    score = 0
-    score += lowest_players_scores(position: :qb, number: 1)
-    score += lowest_players_scores(position: :rb, number: 2)
-    score += lowest_players_scores(position: :wr, number: 3)
-    score += lowest_players_scores(position: :te, number: 1)
-    score += lowest_players_scores(position: :d_st, number: 1)
-    score += lowest_players_scores(position: :k, number: 1)
-    score += lowest_flex_score(number: 1)
-  end
-
-  def lowest_flex_score(args)
+  def lowest_flex_player(args)
     number = args.fetch(:number)
+    team = args.fetch(:team)
 
-    player = available_flex_players.sort_by(&:points).first
-    player.points
+    available_players = team.available_players(grouped_players)
+
+    available_flex_players(available_players).sort_by(&:points).first(number)
   end
 
   def flex_positions
     [:rb, :wr, :te]
   end
 
-  def available_flex_players
+  def available_flex_players(available_players)
     @available_flex_players ||= flex_positions.inject(Array.new) do |players, position|
       players.push(available_players[position])
     end.flatten
@@ -80,21 +69,6 @@ class Team
 
   def non_zero_players
     players.select { |player| player.non_zero? }
-  end
-
-  def lowest_players_scores(args)
-    players = lowest_players(args)
-
-    update_available_players(args.merge(players: players))
-    players.map(&:points).inject(0) { |sum, points| sum + points }
-  end
-
-  def update_available_players(args)
-    players = args.fetch(:players)
-    position = args.fetch(:position)
-    
-    new_available_players = available_players[position] - players
-    self.available_players[position] = new_available_players
   end
 
   def lowest_players(args)
@@ -126,69 +100,78 @@ class Team
 end
 
 class ActiveTeam
-  attr_accessor :players
+  attr_accessor :members
 
   def initialize
-    @players = setup_players
+    @members = Hash.new
+  end
+
+  def points
+    members.inject(0) do |sum, (position, players)|
+      sum + players.map(&:points).inject(0, :+)
+    end
   end
 
   def qb
-    players[:qb]
+    members[:qb]
   end
 
   def qb=(value)
-    self.players[:qb] = value
+    self.members[:qb] = value
   end
 
   def rb
-    players[:rb]
+    members[:rb]
   end
 
   def rb=(value)
-    self.players[:rb] + value
+    self.members[:rb] = value
   end
 
   def wr
-    players[:wr]
+    members[:wr]
   end
 
   def wr=(value)
-    self.players[:wr] + value
+    self.members[:wr] = value
   end
 
   def te
-    players[:te]
+    members[:te]
   end
 
   def te=(value)
-    self.players[:te] = value
+    self.members[:te] = value
   end
 
   def flex
-    players[:flex]
+    members[:flex]
   end
 
   def flex=(value)
-    self.players[:flex] = value
+    self.members[:flex] = value
+  end
+
+  def d_st
+    members[:d_st]
+  end
+
+  def d_st=(value)
+    self.members[:d_st] = value
   end
 
   def k
-    players[:k]
+    members[:k]
   end
 
   def k=(value)
-    self.players[:k] = value
+    self.members[:k] = value
   end
 
-  def setup_players
-    {
-      qb: "",
-      rb: [],
-      wr: [],
-      te: "",
-      flex: "",
-      d_st: "",
-      k: ""
-    }
+  def available_players(all_players)
+    all_players.inject({}) do |available_players, (position, players)|
+      available_players[position] = players - members[position]
+      available_players
+    end
   end
 end
