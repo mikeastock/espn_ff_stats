@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+
+require "terminal-table"
+require_relative "../team"
+
+team = Team.new(ARGV[0])
+
+rows = Array.new
+rows << ["Total Points", team.total_points]
+rows << ["Bench Points", team.bench_points]
+rows << ["Woulda", team.woulda]
+
+table = Terminal::Table.new(title: team.name, rows: rows)
+
+puts table
