@@ -11,12 +11,34 @@ class Team
     @players = setup_players
   end
 
-  def total_points
+  def woulda
+    woulda_team.score.round(2)
+  end
+
+  def coulda
+    total_score.round(2)
+  end
+
+  def shoulda
+    shoulda_team.score.round(2)
+  end
+
+  def name
+    page.at_css(".team-name").text
+  end
+
+  private
+
+  def total_score
     players.map(&:points).inject(0) { |sum, points| sum + points }
   end
 
-  def bench_points
+  def bench_score
     bench_players.map(&:points).inject(0) { |sum, points| sum + points }
+  end
+
+  def shoulda_team
+    @shoulda_team ||= setup_shoulda_team_team
   end
 
   def woulda_team
@@ -35,15 +57,18 @@ class Team
     team
   end
 
-  def coulda
-    total_points
+  def setup_shoulda_team_team
+    team = ActiveTeam.new
+    team.qb   = highest_players(position: :qb, number: 1)
+    team.rb   = highest_players(position: :rb, number: 2)
+    team.wr   = highest_players(position: :wr, number: 3)
+    team.te   = highest_players(position: :te, number: 1)
+    team.d_st = highest_players(position: :d_st, number: 1)
+    team.k    = highest_players(position: :k, number: 1)
+    team.flex = highest_flex_player(number: 1, team: team)
+    team
   end
 
-  def name
-    page.at_css(".team-name").text
-  end
-
-  # private
   def lowest_flex_player(args)
     number = args.fetch(:number)
     team = args.fetch(:team)
@@ -53,12 +78,21 @@ class Team
     available_flex_players(available_players).sort_by(&:points).first(number)
   end
 
+  def highest_flex_player(args)
+    number = args.fetch(:number)
+    team = args.fetch(:team)
+
+    available_players = team.available_players(grouped_players)
+
+    available_flex_players(available_players).sort_by(&:points).last(number)
+  end
+
   def flex_positions
     [:rb, :wr, :te]
   end
 
   def available_flex_players(available_players)
-    @available_flex_players ||= flex_positions.inject(Array.new) do |players, position|
+    flex_positions.inject(Array.new) do |players, position|
       players.push(available_players[position])
     end.flatten
   end
@@ -76,6 +110,13 @@ class Team
     number = args.fetch(:number)
 
     grouped_players[position].sort_by(&:points).first(number)
+  end
+
+  def highest_players(args)
+    position = args.fetch(:position)
+    number = args.fetch(:number)
+
+    grouped_players[position].sort_by(&:points).last(number)
   end
 
   def bench_players
@@ -106,7 +147,7 @@ class ActiveTeam
     @members = Hash.new
   end
 
-  def points
+  def score
     members.inject(0) do |sum, (position, players)|
       sum + players.map(&:points).inject(0, :+)
     end
@@ -170,7 +211,7 @@ class ActiveTeam
 
   def available_players(all_players)
     all_players.inject({}) do |available_players, (position, players)|
-      available_players[position] = players - members[position]
+      available_players[position] = all_players[position] - members[position]
       available_players
     end
   end
