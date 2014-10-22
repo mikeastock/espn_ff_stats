@@ -15,9 +15,7 @@ class Player
 
   def position
     position_text.
-      match(/(QB|RB|WR|TE|D\/ST|K)/).
-      captures.
-      first.
+      split(/[[:space:]]/)[1].
       downcase.
       gsub("/", "_").
       to_sym
